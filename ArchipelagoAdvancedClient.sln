@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArchipelagoAdvancedClient", "ArchipelagoAdvancedClient\ArchipelagoAdvancedClient.csproj", "{AFE6C153-2ACA-4DB9-BEF7-FFCE0978302C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArchipelagoAdvancedClient.Shared", "ArchipelagoAdvancedClient.Shared\ArchipelagoAdvancedClient.Shared.csproj", "{BE37C7E4-B833-4038-8380-18682FB5963C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArchipelagoAdvancedClient.Web", "ArchipelagoAdvancedClient.Web\ArchipelagoAdvancedClient.Web.csproj", "{C5E8EA8E-2CCF-43A0-B4EC-ABB2A87CCF43}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArchipelagoAdvancedClient.Web.Client", "ArchipelagoAdvancedClient.Web.Client\ArchipelagoAdvancedClient.Web.Client.csproj", "{78879318-ABF3-48B1-8664-133693A53AC4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AFE6C153-2ACA-4DB9-BEF7-FFCE0978302C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFE6C153-2ACA-4DB9-BEF7-FFCE0978302C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFE6C153-2ACA-4DB9-BEF7-FFCE0978302C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFE6C153-2ACA-4DB9-BEF7-FFCE0978302C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE37C7E4-B833-4038-8380-18682FB5963C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE37C7E4-B833-4038-8380-18682FB5963C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE37C7E4-B833-4038-8380-18682FB5963C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE37C7E4-B833-4038-8380-18682FB5963C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5E8EA8E-2CCF-43A0-B4EC-ABB2A87CCF43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5E8EA8E-2CCF-43A0-B4EC-ABB2A87CCF43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5E8EA8E-2CCF-43A0-B4EC-ABB2A87CCF43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5E8EA8E-2CCF-43A0-B4EC-ABB2A87CCF43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78879318-ABF3-48B1-8664-133693A53AC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78879318-ABF3-48B1-8664-133693A53AC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78879318-ABF3-48B1-8664-133693A53AC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78879318-ABF3-48B1-8664-133693A53AC4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

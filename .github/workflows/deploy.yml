@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # erlaubt manuelles Auslösen über die GitHub-Weboberfläche
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ArchipelagoAdvancedClient.Web.Client/MeineApp.Web.Client.csproj
+
+      - name: Publish
+        run: dotnet publish ArchipelagoAdvancedClient.Web.Client/MeineApp.Web.Client.csproj -c Release -o dist --nologo
+
+      - name: Add .nojekyll
+        run: touch dist/wwwroot/.nojekyll
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/wwwroot

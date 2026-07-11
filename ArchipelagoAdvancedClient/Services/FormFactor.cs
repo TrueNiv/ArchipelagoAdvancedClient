@@ -6,11 +6,11 @@ public class FormFactor : IFormFactor
 {
     public string GetFormFactor()
     {
-        return DeviceInfo.Idiom.ToString();
+        return "Desktop";
     }
 
     public string GetPlatform()
     {
-        return DeviceInfo.Platform.ToString() + " - " + DeviceInfo.VersionString;
+        return Environment.OSVersion.ToString();
     }
 }

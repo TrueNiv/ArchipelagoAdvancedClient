@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:  # erlaubt manuelles Auslösen über die GitHub-Weboberfläche
 
 permissions:
@@ -18,13 +18,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore ArchipelagoAdvancedClient.Web.Client/MeineApp.Web.Client.csproj
+        run: dotnet restore ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj
 
       - name: Publish
-        run: dotnet publish ArchipelagoAdvancedClient.Web.Client/MeineApp.Web.Client.csproj -c Release -o dist --nologo
+        run: dotnet publish ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj -c Release -o dist --nologo
 
       - name: Add .nojekyll
         run: touch dist/wwwroot/.nojekyll

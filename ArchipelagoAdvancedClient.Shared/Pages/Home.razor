@@ -1,15 +1,186 @@
-﻿@namespace ArchipelagoAdvancedClient.Shared.Pages
+@namespace ArchipelagoAdvancedClient.Shared.Pages
 @page "/"
+@using ArchipelagoAdvancedClient.Business.RoomScraping
+@using ArchipelagoAdvancedClient.Shared.Models
 @using ArchipelagoAdvancedClient.Shared.Services
-@inject IFormFactor FormFactor
+@using Microsoft.AspNetCore.Components
+@inject ILocalStorageService LocalStorage
+@inject IRoomScraperService RoomScraper
+@inject NavigationManager NavigationManager
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="row">
+    <div class="col-md-4">
+        <h4>Connections</h4>
 
-Welcome to your new app running on <em>@factor</em> using <em>@platform</em>.
+        <ul class="list-group mb-2" id="connections-list">
+            @foreach (var connection in connections)
+            {
+                <li class="list-group-item connection-item @(connection == selectedConnection ? "active" : "")"
+                    style="cursor: pointer"
+                    @onclick="() => SelectConnection(connection)">
+                    @connection.Name
+                </li>
+            }
+        </ul>
+
+        @if (isAddingConnection)
+        {
+            <div class="card card-body mb-2">
+                <div class="mb-2">
+                    <label class="form-label">Name</label>
+                    <input class="form-control" id="connection-name-input" @bind="newConnectionName" @bind:event="oninput"/>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">URL</label>
+                    <input class="form-control" id="connection-url-input" @bind="newConnectionUrl" @bind:event="oninput"/>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="confirm-add-connection-button" disabled="@(!CanAddConnection)" @onclick="ConfirmAddConnection">Add</button>
+                    <button class="btn btn-secondary" id="cancel-add-connection-button" @onclick="CancelAddConnection">Cancel</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" id="add-connection-button" @onclick="StartAddConnection">Add Room</button>
+                <button class="btn btn-danger" id="remove-connection-button" disabled="@(selectedConnection is null)" @onclick="RemoveSelectedConnection">Remove Room</button>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-8">
+        @if (selectedConnection is not null)
+        {
+            <h4>@selectedConnection.Name</h4>
+
+            @if (isLoadingRoom)
+            {
+                <p><em>Loading room information...</em></p>
+            }
+            else if (roomLoadFailed)
+            {
+                <p class="text-danger">Failed to load room information from this connection's URL.</p>
+            }
+            else if (roomInfo is not null)
+            {
+                <select class="form-select mb-2" id="slot-select" @onchange="OnSlotSelected">
+                    <option value="">-- select a slot --</option>
+                    @foreach (var group in roomInfo.Slots.Select((slot, index) => (slot, index)).GroupBy(x => x.slot.Game))
+                    {
+                        <optgroup label="@group.Key">
+                            @foreach (var (slot, index) in group)
+                            {
+                                <option value="@index" selected="@(index == selectedSlotIndex)">@slot.Name</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+
+                <button class="btn btn-success" id="connect-button" disabled="@(selectedSlotIndex is null)" @onclick="Connect">Connect</button>
+            }
+        }
+    </div>
+</div>
 
 @code {
-    private string factor => FormFactor.GetFormFactor();
-    private string platform => FormFactor.GetPlatform();
+    private const string StorageKey = "connections";
+
+    private List<Connection> connections = [];
+    private Connection? selectedConnection;
+
+    private bool isAddingConnection;
+    private string newConnectionName = string.Empty;
+    private string newConnectionUrl = string.Empty;
+    private bool CanAddConnection => !string.IsNullOrWhiteSpace(newConnectionName) && !string.IsNullOrWhiteSpace(newConnectionUrl);
+
+    private RoomInfo? roomInfo;
+    private bool isLoadingRoom;
+    private bool roomLoadFailed;
+    private int? selectedSlotIndex;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        
+        connections = await LocalStorage.GetItemAsync<List<Connection>>(StorageKey) ?? [];
+        StateHasChanged();
+    }
+
+    private void StartAddConnection()
+    {
+        newConnectionName = string.Empty;
+        newConnectionUrl = string.Empty;
+        isAddingConnection = true;
+    }
+
+    private void CancelAddConnection()
+    {
+        isAddingConnection = false;
+    }
+
+    private async Task ConfirmAddConnection()
+    {
+        if (!CanAddConnection) return;
+
+        connections.Add(new Connection { Name = newConnectionName, Url = newConnectionUrl });
+        await SaveConnectionsAsync();
+        isAddingConnection = false;
+    }
+
+    private async Task RemoveSelectedConnection()
+    {
+        if (selectedConnection is null) return;
+
+        connections.Remove(selectedConnection);
+        selectedConnection = null;
+        roomInfo = null;
+        roomLoadFailed = false;
+        selectedSlotIndex = null;
+        await SaveConnectionsAsync();
+    }
+
+    private Task SaveConnectionsAsync() => LocalStorage.SetItemAsync(StorageKey, connections);
+
+    private async Task SelectConnection(Connection connection)
+    {
+        selectedConnection = connection;
+        roomInfo = null;
+        roomLoadFailed = false;
+        selectedSlotIndex = null;
+        isLoadingRoom = true;
+
+        try
+        {
+            roomInfo = await RoomScraper.ScrapeRoom(connection.Url);
+        }
+        catch
+        {
+            roomLoadFailed = true;
+        }
+
+        isLoadingRoom = false;
+    }
+
+    private void OnSlotSelected(ChangeEventArgs e)
+    {
+        selectedSlotIndex = int.TryParse(e.Value?.ToString(), out var index) ? index : null;
+    }
+
+    private void Connect()
+    {
+        if (selectedConnection is null || roomInfo is null || selectedSlotIndex is null) return;
+
+        var slot = roomInfo.Slots[selectedSlotIndex.Value];
+        var uri = NavigationManager.GetUriWithQueryParameters("/chat", new Dictionary<string, object?>
+        {
+            ["url"] = $"{roomInfo.Host}:{roomInfo.Port}",
+            ["username"] = slot.Name,
+            ["game"] = slot.Game,
+            ["autoConnect"] = true
+        });
+        NavigationManager.NavigateTo(uri);
+    }
 }

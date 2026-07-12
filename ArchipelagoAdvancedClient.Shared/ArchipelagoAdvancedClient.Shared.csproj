@@ -11,7 +11,12 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
         <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ArchipelagoAdvancedClient.Business\ArchipelagoAdvancedClient.Business.csproj"/>
     </ItemGroup>
 
 </Project>

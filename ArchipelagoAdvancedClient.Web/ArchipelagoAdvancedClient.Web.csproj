@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ArchipelagoAdvancedClient.Web.Client\ArchipelagoAdvancedClient.Web.Client.csproj"/>
+        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0"/>
     </ItemGroup>
 

@@ -1,0 +1,159 @@
+@namespace ArchipelagoAdvancedClient.Shared.Pages
+@page "/chat"
+@using Archipelago.MultiClient.Net
+@using Archipelago.MultiClient.Net.MessageLog.Messages
+@using ArchipelagoAdvancedClient.Business
+@using ArchipelagoAdvancedClient.Business.APConnector
+@using Microsoft.AspNetCore.Components
+@implements IDisposable
+@inject IChatService ChatService
+@inject IArchipelagoConnectorService Connector
+
+<PageTitle>Chat</PageTitle>
+
+<div class="row g-2 align-items-end mb-2">
+    <div class="col">
+        <label class="form-label">URL</label>
+        <input class="form-control" id="chat-url-input" @bind="url" @bind:event="oninput"/>
+    </div>
+    <div class="col">
+        <label class="form-label">Username</label>
+        <input class="form-control" id="chat-username-input" @bind="username" @bind:event="oninput"/>
+    </div>
+    <div class="col">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="chat-password-input" @bind="password" @bind:event="oninput"/>
+    </div>
+    <div class="col">
+        <label class="form-label">Game</label>
+        <input class="form-control" id="chat-game-input" @bind="game" @bind:event="oninput"/>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-success" id="chat-connect-button" disabled="@(!CanConnect)" @onclick="ConnectAsync">
+            @(isConnecting ? "Connecting..." : "Connect")
+        </button>
+    </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-md-3">
+        <label class="form-label">Major</label>
+        <input type="number" class="form-control" id="chat-version-major-input" @bind="major" disabled="@(!overrideVersion)"/>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Minor</label>
+        <input type="number" class="form-control" id="chat-version-minor-input" @bind="minor" disabled="@(!overrideVersion)"/>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Build</label>
+        <input type="number" class="form-control" id="chat-version-build-input" @bind="build" disabled="@(!overrideVersion)"/>
+    </div>
+    <div class="col-md-3 d-flex align-items-center">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="chat-override-version-checkbox" @bind="overrideVersion"/>
+            <label class="form-check-label" for="chat-override-version-checkbox">Override version</label>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Connector.ConnectionMessage))
+{
+    <p class="text-muted">@Connector.ConnectionMessage</p>
+}
+
+<div class="chat-log mb-2" id="chat-log">
+    @foreach (var message in ChatService.Log)
+    {
+        <div class="chat-line">
+            @foreach (var part in message.Parts)
+            {
+                <span style="color: rgb(@part.Color.R, @part.Color.G, @part.Color.B)">@part.Text</span>
+            }
+        </div>
+    }
+</div>
+
+<div class="row g-2">
+    <div class="col">
+        <input class="form-control" id="chat-message-input" placeholder="Message" @bind="messageText" @bind:event="oninput" @onkeydown="OnMessageKeyDown"/>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" id="chat-send-button" disabled="@(!CanSend)" @onclick="SendMessage">Send</button>
+    </div>
+</div>
+
+@code {
+    private string url = string.Empty;
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string game = string.Empty;
+
+    private bool overrideVersion;
+    private int major = 0;
+    private int minor = 7;
+    private int build = 0;
+
+    private bool isConnecting;
+    private string messageText = string.Empty;
+
+    [Parameter, SupplyParameterFromQuery(Name = "url")]
+    public string? QueryUrl { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "username")]
+    public string? QueryUsername { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "game")]
+    public string? QueryGame { get; set; }
+
+    [Parameter, SupplyParameterFromQuery(Name = "autoConnect")]
+    public bool? QueryAutoConnect { get; set; }
+
+    private bool CanConnect => !isConnecting && !string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(game);
+    private bool CanSend => Connector.LoginResult is LoginSuccessful && !string.IsNullOrWhiteSpace(messageText);
+
+    protected override void OnInitialized()
+    {
+        ChatService.LogChanged += OnLogChanged;
+
+        if (!string.IsNullOrWhiteSpace(QueryUrl)) url = QueryUrl;
+        if (!string.IsNullOrWhiteSpace(QueryUsername)) username = QueryUsername;
+        if (!string.IsNullOrWhiteSpace(QueryGame)) game = QueryGame;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && QueryAutoConnect == true && CanConnect)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        isConnecting = true;
+        var version = overrideVersion ? new Version(major, minor, build) : null;
+        await Task.Run(() => Connector.Connect(url, game, username, password, version));
+        isConnecting = false;
+        StateHasChanged();
+    }
+
+    private void SendMessage()
+    {
+        if (!CanSend) return;
+
+        Connector.SendChatMessage(messageText);
+        messageText = string.Empty;
+    }
+
+    private void OnMessageKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") SendMessage();
+    }
+
+    private void OnLogChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ChatService.LogChanged -= OnLogChanged;
+    }
+}

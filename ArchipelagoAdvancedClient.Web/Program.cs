@@ -1,3 +1,6 @@
+using ArchipelagoAdvancedClient.Business;
+using ArchipelagoAdvancedClient.Business.APConnector;
+using ArchipelagoAdvancedClient.Business.RoomScraping;
 using ArchipelagoAdvancedClient.Web.Components;
 using ArchipelagoAdvancedClient.Shared.Services;
 using ArchipelagoAdvancedClient.Web.Services;
@@ -16,6 +19,13 @@ public class Program
 
         // Add device-specific services used by the ArchipelagoAdvancedClient.Shared project
         builder.Services.AddSingleton<IFormFactor, FormFactor>();
+        builder.Services.AddScoped<ILocalStorageService, BrowserLocalStorageService>();
+        builder.Services.AddScoped<IExternalLinkOpener, BrowserExternalLinkOpener>();
+
+        // Add business logic services used by the ArchipelagoAdvancedClient.Shared project
+        builder.Services.AddSingleton<IChatService, ChatService>();
+        builder.Services.AddSingleton<IArchipelagoConnectorService, ArchipelagoConnectorService>();
+        builder.Services.AddSingleton<IRoomScraperService, RoomScraperService>();
 
         var app = builder.Build();
 

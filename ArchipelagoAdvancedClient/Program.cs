@@ -1,3 +1,6 @@
+using ArchipelagoAdvancedClient.Business;
+using ArchipelagoAdvancedClient.Business.APConnector;
+using ArchipelagoAdvancedClient.Business.RoomScraping;
 using ArchipelagoAdvancedClient.Services;
 using ArchipelagoAdvancedClient.Shared;
 using ArchipelagoAdvancedClient.Shared.Services;
@@ -17,6 +20,13 @@ class Program
 
         // Add device-specific services used by the ArchipelagoAdvancedClient.Shared project
         appBuilder.Services.AddSingleton<IFormFactor, FormFactor>();
+        appBuilder.Services.AddSingleton<ILocalStorageService, FileLocalStorageService>();
+        appBuilder.Services.AddSingleton<IExternalLinkOpener, ExternalLinkOpener>();
+
+        // Add business logic services used by the ArchipelagoAdvancedClient.Shared project
+        appBuilder.Services.AddSingleton<IChatService, ChatService>();
+        appBuilder.Services.AddSingleton<IArchipelagoConnectorService, ArchipelagoConnectorService>();
+        appBuilder.Services.AddSingleton<IRoomScraperService, RoomScraperService>();
 
         appBuilder.RootComponents.Add<Routes>("#app");
 
@@ -30,7 +40,8 @@ class Program
 
         app.MainWindow
             .SetIconFile(iconFile)
-            .SetTitle("ArchipelagoAdvancedClient");
+            .SetTitle("ArchipelagoAdvancedClient")
+            .SetLogVerbosity(0);
 
 #if DEBUG
         app.MainWindow

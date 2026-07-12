@@ -14,6 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
         <PackageReference Include="Photino.Blazor" Version="4.0.13" />
         <!-- Photino.Blazor only ships net8.0/net9.0 assets, so without this NuGet resolves
              Microsoft.AspNetCore.Components.WebView to its net9.0 build (9.0.1) even though

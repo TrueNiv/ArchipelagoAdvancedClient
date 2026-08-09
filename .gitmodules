@@ -1,0 +1,4 @@
+[submodule "external/Archipelago.MultiClient.Net"]
+	path = external/Archipelago.MultiClient.Net
+	url = https://github.com/TrueNiv/Archipelago.MultiClient.Net.git
+	branch = async-refactor

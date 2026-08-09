@@ -3,6 +3,5 @@ obj/
 dist/
 .vs/
 .idea/
-.claude/
 docs/
 *.user

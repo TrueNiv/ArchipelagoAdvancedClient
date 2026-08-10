@@ -1,3 +1,18 @@
+/* _content/ArchipelagoAdvancedClient.Shared/Components/ChatLogView.razor.rz.scp.css */
+.chat-log[b-yml0qvijqh] {
+    height: 55vh;
+    overflow-y: auto;
+    border: 1px solid var(--bs-border-color, #ccc);
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    background-color: #363636;
+    font-family: monospace;
+}
+
+.chat-line[b-yml0qvijqh] {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
 /* _content/ArchipelagoAdvancedClient.Shared/Layout/MainLayout.razor.rz.scp.css */
 #blazor-error-ui[b-dqdpqfoz07] {
     color-scheme: light only;
@@ -19,21 +34,6 @@
         right: 0.75rem;
         top: 0.5rem;
     }
-/* _content/ArchipelagoAdvancedClient.Shared/Pages/Chat.razor.rz.scp.css */
-.chat-log[b-9bg813hby4] {
-    height: 55vh;
-    overflow-y: auto;
-    border: 1px solid var(--bs-border-color, #ccc);
-    border-radius: 0.25rem;
-    padding: 0.5rem;
-    background-color: #1e1e1e;
-    font-family: monospace;
-}
-
-.chat-line[b-9bg813hby4] {
-    white-space: pre-wrap;
-    word-break: break-word;
-}
 /* _content/ArchipelagoAdvancedClient.Shared/Pages/Home.razor.rz.scp.css */
 .list-group[b-6zq2m8zqmw] {
     border-color: var(--mud-palette-lines-default);
@@ -61,4 +61,12 @@
 .form-select optgroup[b-6zq2m8zqmw] {
     background-color: var(--mud-palette-surface);
     color: var(--mud-palette-text-primary);
+}
+/* _content/ArchipelagoAdvancedClient.Shared/Pages/Items.razor.rz.scp.css */
+[b-27zumdfe7s] .selected-row {
+    background-color: var(--mud-palette-primary-hover) !important;
+}
+/* _content/ArchipelagoAdvancedClient.Shared/Pages/Locations.razor.rz.scp.css */
+[b-3fgactdn9f] .selected-row {
+    background-color: var(--mud-palette-primary-hover) !important;
 }

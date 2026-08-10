@@ -171,7 +171,7 @@
         if (selectedConnection is null || roomInfo is null || selectedSlotIndex is null) return;
 
         var slot = roomInfo.Slots[selectedSlotIndex.Value];
-        var uri = NavigationManager.GetUriWithQueryParameters("/chat", new Dictionary<string, object?>
+        var uri = NavigationManager.GetUriWithQueryParameters("chat", new Dictionary<string, object?>
         {
             ["url"] = $"{roomInfo.Host}:{roomInfo.Port}",
             ["username"] = slot.Name,

@@ -1,0 +1,45 @@
+@namespace ArchipelagoAdvancedClient.Shared.Pages
+@page "/settings"
+@using ArchipelagoAdvancedClient.Shared.Services
+@implements IDisposable
+@inject IThemeService ThemeService
+
+<PageTitle>Settings</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">Settings</MudText>
+
+<MudSwitch T="bool" Value="@isDarkMode" ValueChanged="OnDarkModeChanged" Color="Color.Primary" Label="Dark mode" id="dark-mode-switch"/>
+
+@code {
+    private bool isDarkMode;
+
+    protected override void OnInitialized()
+    {
+        isDarkMode = ThemeService.IsDarkMode;
+
+        // ThemeService.IsDarkMode can still change after this: on ArchipelagoAdvancedClient.Web's
+        // server-prerendered pass there's no storage to read from yet, so the persisted preference
+        // only loads once MainLayout's OnAfterRenderAsync calls ThemeService.InitializeAsync() -
+        // which can resolve after this page's own OnInitialized already ran and captured the
+        // (possibly still-default) value. Without this subscription the switch can silently show
+        // the wrong position relative to the theme actually applied.
+        ThemeService.ThemeChanged += OnThemeChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        isDarkMode = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnDarkModeChanged(bool value)
+    {
+        isDarkMode = value;
+        await ThemeService.SetDarkModeAsync(value);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnThemeChanged;
+    }
+}

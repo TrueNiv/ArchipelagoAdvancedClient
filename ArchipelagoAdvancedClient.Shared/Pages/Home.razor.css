@@ -1,0 +1,27 @@
+.list-group {
+    border-color: var(--mud-palette-lines-default);
+}
+
+.list-group-item {
+    background-color: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border-color: var(--mud-palette-lines-default);
+}
+
+.list-group-item.active {
+    background-color: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.form-select {
+    background-color: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border-color: var(--mud-palette-lines-inputs);
+}
+
+.form-select option,
+.form-select optgroup {
+    background-color: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+}

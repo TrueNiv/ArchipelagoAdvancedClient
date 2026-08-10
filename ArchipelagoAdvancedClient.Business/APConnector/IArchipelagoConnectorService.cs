@@ -9,6 +9,7 @@ public interface IArchipelagoConnectorService
     string ConnectionMessage { get; }
     LoginResult LoginResult { get; }
     EventHandler<List<HintDTO>> HintsChanged { get; set; }
+    IReadOnlyList<HintDTO> Hints { get; }
     ArchipelagoSession ArchipelagoSession { get; }
     DeathLinkService DeathLinkService { get; }
     Dictionary<string, string[]>? ItemGroups { get; }

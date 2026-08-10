@@ -22,6 +22,7 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
     public LoginResult LoginResult { get; private set; }
 
     public EventHandler<List<HintDTO>> HintsChanged { get; set; }
+    public IReadOnlyList<HintDTO> Hints => hints;
 
     public ArchipelagoSession ArchipelagoSession {get; private set;}
     public DeathLinkService DeathLinkService { get; private set; }

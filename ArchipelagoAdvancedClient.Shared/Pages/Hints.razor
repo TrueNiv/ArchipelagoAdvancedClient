@@ -1,0 +1,67 @@
+@namespace ArchipelagoAdvancedClient.Shared.Pages
+@page "/hints"
+@using Archipelago.MultiClient.Net
+@using ArchipelagoAdvancedClient.Business.APConnector
+@implements IDisposable
+@inject IArchipelagoConnectorService Connector
+
+<PageTitle>Hints</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">Hints</MudText>
+
+@if (!IsConnected)
+{
+    <MudText Typo="Typo.body1">Not connected to a room.</MudText>
+}
+else
+{
+    <MudDataGrid T="HintDTO" Items="@hints" Filterable="false" SortMode="SortMode.Multiple" QuickFilter="@QuickFilter" Hover="true" Dense="true" id="hints-grid">
+        <ToolBarContent>
+            <MudTextField T="string" @bind-Value="searchString" Immediate="true" Placeholder="Search"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Class="mt-0" id="hints-search-input"/>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.ReceivingPlayer" Title="Receiving Player"/>
+            <PropertyColumn Property="x => x.Item" Title="Item"/>
+            <PropertyColumn Property="x => x.FindingPlayer" Title="Finding Player"/>
+            <PropertyColumn Property="x => x.Location" Title="Location"/>
+            <PropertyColumn Property="x => x.Entrance" Title="Entrance"/>
+            <PropertyColumn Property="x => x.Status" Title="Status"/>
+        </Columns>
+    </MudDataGrid>
+}
+
+@code {
+    private List<HintDTO> hints = [];
+    private string searchString = string.Empty;
+
+    private bool IsConnected => Connector.LoginResult is LoginSuccessful;
+
+    protected override void OnInitialized()
+    {
+        hints = Connector.Hints.ToList();
+        Connector.HintsChanged += OnHintsChanged;
+    }
+
+    private void OnHintsChanged(object? sender, List<HintDTO> updatedHints)
+    {
+        hints = updatedHints.ToList();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool QuickFilter(HintDTO hint)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+
+        return Contains(hint.ReceivingPlayer) || Contains(hint.Item) || Contains(hint.FindingPlayer) ||
+               Contains(hint.Location) || Contains(hint.Entrance) || Contains(hint.Status.ToString());
+
+        bool Contains(string? value) => value is not null && value.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose()
+    {
+        Connector.HintsChanged -= OnHintsChanged;
+    }
+}

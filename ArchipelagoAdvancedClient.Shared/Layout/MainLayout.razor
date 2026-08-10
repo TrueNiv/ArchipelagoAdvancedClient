@@ -1,16 +1,14 @@
 @namespace ArchipelagoAdvancedClient.Shared.Layout
 @inherits LayoutComponentBase
 @using ArchipelagoAdvancedClient.Shared.Services
-@implements IDisposable
 @inject IExternalLinkOpener LinkOpener
-@inject IThemeService ThemeService
 
-<MudThemeProvider IsDarkMode="@ThemeService.IsDarkMode"/>
+<MudThemeProvider IsDarkMode="true"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
-<MudLayout Style="@($"color-scheme: {(ThemeService.IsDarkMode ? "dark" : "light")}")">
+<MudLayout Style="color-scheme: dark">
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => drawerOpen = !drawerOpen)"/>
         <MudText Typo="Typo.h6" Class="ml-3">Archipelago</MudText>
@@ -36,28 +34,5 @@
 @code {
     private bool drawerOpen = true;
 
-    protected override void OnInitialized()
-    {
-        ThemeService.ThemeChanged += OnThemeChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Persisted preference (if any) can only be read once a JS runtime/storage is actually
-            // available - not yet the case during ArchipelagoAdvancedClient.Web's server prerender
-            // pass. Dark mode (the field's default) is what renders until this resolves.
-            await ThemeService.InitializeAsync();
-        }
-    }
-
-    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
-
     private Task OpenGitHub() => LinkOpener.OpenAsync("https://github.com/TrueNiv/ArchipelagoAdvancedClient");
-
-    public void Dispose()
-    {
-        ThemeService.ThemeChanged -= OnThemeChanged;
-    }
 }

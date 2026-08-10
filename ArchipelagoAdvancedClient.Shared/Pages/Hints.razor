@@ -2,6 +2,7 @@
 @page "/hints"
 @using Archipelago.MultiClient.Net
 @using ArchipelagoAdvancedClient.Business.APConnector
+@using ArchipelagoAdvancedClient.Shared.Models
 @implements IDisposable
 @inject IArchipelagoConnectorService Connector
 
@@ -22,12 +23,32 @@ else
                           Class="mt-0" id="hints-search-input"/>
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.ReceivingPlayer" Title="Receiving Player"/>
+            <PropertyColumn Property="x => x.ReceivingPlayer" Title="Receiving Player">
+                <CellTemplate>
+                    <MudText Style="@($"color:{(context.Item.IsReceivingPlayerSelf ? HintColors.PlayerSelf : HintColors.PlayerOther)}")">@context.Item.ReceivingPlayer</MudText>
+                </CellTemplate>
+            </PropertyColumn>
             <PropertyColumn Property="x => x.Item" Title="Item"/>
-            <PropertyColumn Property="x => x.FindingPlayer" Title="Finding Player"/>
-            <PropertyColumn Property="x => x.Location" Title="Location"/>
-            <PropertyColumn Property="x => x.Entrance" Title="Entrance"/>
-            <PropertyColumn Property="x => x.Status" Title="Status"/>
+            <PropertyColumn Property="x => x.FindingPlayer" Title="Finding Player">
+                <CellTemplate>
+                    <MudText Style="@($"color:{(context.Item.IsFindingPlayerSelf ? HintColors.PlayerSelf : HintColors.PlayerOther)}")">@context.Item.FindingPlayer</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Location" Title="Location">
+                <CellTemplate>
+                    <MudText Style="@($"color:{HintColors.Location}")">@context.Item.Location</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Entrance" Title="Entrance">
+                <CellTemplate>
+                    <MudText Style="@($"color:{(string.IsNullOrEmpty(context.Item.Entrance) ? HintColors.EntranceVanilla : HintColors.EntranceShuffled)}")">@(string.IsNullOrEmpty(context.Item.Entrance) ? "Vanilla" : context.Item.Entrance)</MudText>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Status" Title="Status">
+                <CellTemplate>
+                    <MudText Style="@($"color:{HintColors.ForStatus(context.Item.Status)}")">@context.Item.Status</MudText>
+                </CellTemplate>
+            </PropertyColumn>
         </Columns>
     </MudDataGrid>
 }

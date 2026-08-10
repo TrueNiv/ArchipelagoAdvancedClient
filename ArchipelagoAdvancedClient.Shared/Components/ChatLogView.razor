@@ -1,0 +1,82 @@
+@namespace ArchipelagoAdvancedClient.Shared.Components
+@implements IAsyncDisposable
+@using ArchipelagoAdvancedClient.Business
+@using Microsoft.AspNetCore.Components
+@using Microsoft.JSInterop
+@inject IChatService ChatService
+@inject IJSRuntime JS
+
+<div class="chat-log" id="@Id" @ref="chatLogElement">
+    @foreach (var message in ChatService.Log)
+    {
+        <div class="chat-line">
+            @foreach (var part in message.Parts)
+            {
+                <span style="color: rgb(@part.Color.R, @part.Color.G, @part.Color.B)">@part.Text</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = "chat-log";
+
+    private ElementReference chatLogElement;
+    private IJSObjectReference? scrollModule;
+    private bool pendingScrollToBottom;
+
+    protected override void OnInitialized()
+    {
+        ChatService.LogChanged += OnLogChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (pendingScrollToBottom)
+        {
+            pendingScrollToBottom = false;
+            var module = await GetScrollModuleAsync();
+            await module.InvokeVoidAsync("scrollToBottom", chatLogElement);
+        }
+    }
+
+    private async Task<IJSObjectReference> GetScrollModuleAsync() =>
+        scrollModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ArchipelagoAdvancedClient.Shared/js/chat-scroll.js");
+
+    private async void OnLogChanged()
+    {
+        // Checked here, before StateHasChanged triggers a re-render with the new message, so this
+        // reflects whether the user was scrolled to the bottom of the *previous* content - the
+        // correct signal for "were they following along" rather than "will they end up at the
+        // bottom after the new message is added".
+        try
+        {
+            var module = await GetScrollModuleAsync();
+            pendingScrollToBottom = await module.InvokeAsync<bool>("isAtBottom", chatLogElement);
+        }
+        catch (JSException)
+        {
+            pendingScrollToBottom = true;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        ChatService.LogChanged -= OnLogChanged;
+
+        if (scrollModule is not null)
+        {
+            try
+            {
+                await scrollModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // circuit/runtime already tearing down - nothing to clean up
+            }
+        }
+    }
+}

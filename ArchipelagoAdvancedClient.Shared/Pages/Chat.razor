@@ -1,30 +1,28 @@
 @namespace ArchipelagoAdvancedClient.Shared.Pages
 @page "/chat"
 @using Archipelago.MultiClient.Net
-@using Archipelago.MultiClient.Net.MessageLog.Messages
-@using ArchipelagoAdvancedClient.Business
 @using ArchipelagoAdvancedClient.Business.APConnector
+@using ArchipelagoAdvancedClient.Shared.Components
+@using ArchipelagoAdvancedClient.Shared.Models
+@using ArchipelagoAdvancedClient.Shared.Services
 @using Microsoft.AspNetCore.Components
-@using Microsoft.JSInterop
-@implements IAsyncDisposable
-@inject IChatService ChatService
 @inject IArchipelagoConnectorService Connector
-@inject IJSRuntime JS
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Chat</PageTitle>
 
 <div class="row g-2 align-items-end mb-2">
     <div class="col">
-        <MudTextField T="string" @bind-Value="url" Immediate="true" Label="URL" Variant="Variant.Outlined" id="chat-url-input"/>
+        <MudTextField T="string" Value="@url" ValueChanged="@(async (string v) => { url = v; await SaveSettingsAsync(); })" Immediate="true" Label="URL" Variant="Variant.Outlined" id="chat-url-input"/>
     </div>
     <div class="col">
-        <MudTextField T="string" @bind-Value="username" Immediate="true" Label="Username" Variant="Variant.Outlined" id="chat-username-input"/>
+        <MudTextField T="string" Value="@username" ValueChanged="@(async (string v) => { username = v; await SaveSettingsAsync(); })" Immediate="true" Label="Username" Variant="Variant.Outlined" id="chat-username-input"/>
     </div>
     <div class="col">
         <MudTextField T="string" @bind-Value="password" Immediate="true" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" id="chat-password-input"/>
     </div>
     <div class="col">
-        <MudTextField T="string" @bind-Value="game" Immediate="true" Label="Game" Variant="Variant.Outlined" id="chat-game-input"/>
+        <MudTextField T="string" Value="@game" ValueChanged="@(async (string v) => { game = v; await SaveSettingsAsync(); })" Immediate="true" Label="Game" Variant="Variant.Outlined" id="chat-game-input"/>
     </div>
     <div class="col-auto">
         @if (IsConnected)
@@ -44,16 +42,16 @@
 
 <div class="row g-2 mb-3">
     <div class="col-md-3">
-        <MudNumericField T="int" @bind-Value="major" Label="Major" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-major-input"/>
+        <MudNumericField T="int" Value="@major" ValueChanged="@(async (int v) => { major = v; await SaveSettingsAsync(); })" Label="Major" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-major-input"/>
     </div>
     <div class="col-md-3">
-        <MudNumericField T="int" @bind-Value="minor" Label="Minor" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-minor-input"/>
+        <MudNumericField T="int" Value="@minor" ValueChanged="@(async (int v) => { minor = v; await SaveSettingsAsync(); })" Label="Minor" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-minor-input"/>
     </div>
     <div class="col-md-3">
-        <MudNumericField T="int" @bind-Value="build" Label="Build" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-build-input"/>
+        <MudNumericField T="int" Value="@build" ValueChanged="@(async (int v) => { build = v; await SaveSettingsAsync(); })" Label="Build" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-build-input"/>
     </div>
     <div class="col-md-3 d-flex align-items-center">
-        <MudCheckBox T="bool" @bind-Value="overrideVersion" Label="Override version" id="chat-override-version-checkbox"/>
+        <MudCheckBox T="bool" Value="@overrideVersion" ValueChanged="@(async (bool v) => { overrideVersion = v; await SaveSettingsAsync(); })" Label="Override version" id="chat-override-version-checkbox"/>
     </div>
 </div>
 
@@ -62,16 +60,8 @@
     <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@Connector.ConnectionMessage</MudText>
 }
 
-<div class="chat-log mb-2" id="chat-log" @ref="chatLogElement">
-    @foreach (var message in ChatService.Log)
-    {
-        <div class="chat-line">
-            @foreach (var part in message.Parts)
-            {
-                <span style="color: rgb(@part.Color.R, @part.Color.G, @part.Color.B)">@part.Text</span>
-            }
-        </div>
-    }
+<div class="mb-2">
+    <ChatLogView Id="chat-log"/>
 </div>
 
 <div class="row g-2">
@@ -84,6 +74,8 @@
 </div>
 
 @code {
+    private const string StorageKey = "chat-connection-settings";
+
     private string url = string.Empty;
     private string username = string.Empty;
     private string password = string.Empty;
@@ -96,10 +88,6 @@
 
     private bool isConnecting;
     private string messageText = string.Empty;
-
-    private ElementReference chatLogElement;
-    private IJSObjectReference? scrollModule;
-    private bool pendingScrollToBottom;
 
     [Parameter, SupplyParameterFromQuery(Name = "url")]
     public string? QueryUrl { get; set; }
@@ -119,8 +107,6 @@
 
     protected override void OnInitialized()
     {
-        ChatService.LogChanged += OnLogChanged;
-
         if (!string.IsNullOrWhiteSpace(QueryUrl)) url = QueryUrl;
         if (!string.IsNullOrWhiteSpace(QueryUsername)) username = QueryUsername;
         if (!string.IsNullOrWhiteSpace(QueryGame)) game = QueryGame;
@@ -128,21 +114,47 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && QueryAutoConnect == true && CanConnect)
+        if (firstRender)
         {
-            await ConnectAsync();
-        }
+            // The stored connection info can only be read once a JS runtime/storage is actually
+            // available, so this can't happen in OnInitialized - see BrowserLocalStorageService's
+            // own comment. Query-string values (arriving via the Rooms page's Connect button) take
+            // priority over whatever was last saved, since they represent an explicit new choice.
+            var saved = await LocalStorage.GetItemAsync<ChatConnectionSettings>(StorageKey);
+            if (saved is not null)
+            {
+                if (string.IsNullOrWhiteSpace(url)) url = saved.Url;
+                if (string.IsNullOrWhiteSpace(username)) username = saved.Username;
+                if (string.IsNullOrWhiteSpace(game)) game = saved.Game;
+                overrideVersion = saved.OverrideVersion;
+                major = saved.Major;
+                minor = saved.Minor;
+                build = saved.Build;
+                StateHasChanged();
+            }
 
-        if (pendingScrollToBottom)
-        {
-            pendingScrollToBottom = false;
-            var module = await GetScrollModuleAsync();
-            await module.InvokeVoidAsync("scrollToBottom", chatLogElement);
+            // Persists whichever values just got resolved above - keeps storage in sync when this
+            // load came from query-string params (the Rooms page's Connect button), so returning to
+            // this page later remembers that connection too, not just manually-typed ones.
+            await SaveSettingsAsync();
+
+            if (QueryAutoConnect == true && CanConnect)
+            {
+                await ConnectAsync();
+            }
         }
     }
 
-    private async Task<IJSObjectReference> GetScrollModuleAsync() =>
-        scrollModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ArchipelagoAdvancedClient.Shared/js/chat-scroll.js");
+    private Task SaveSettingsAsync() => LocalStorage.SetItemAsync(StorageKey, new ChatConnectionSettings
+    {
+        Url = url,
+        Username = username,
+        Game = game,
+        OverrideVersion = overrideVersion,
+        Major = major,
+        Minor = minor,
+        Build = build
+    });
 
     private async Task ConnectAsync()
     {
@@ -170,41 +182,5 @@
     private async Task OnMessageKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await SendMessage();
-    }
-
-    private async void OnLogChanged()
-    {
-        // Checked here, before StateHasChanged triggers a re-render with the new message, so this
-        // reflects whether the user was scrolled to the bottom of the *previous* content - the
-        // correct signal for "were they following along" rather than "will they end up at the
-        // bottom after the new message is added".
-        try
-        {
-            var module = await GetScrollModuleAsync();
-            pendingScrollToBottom = await module.InvokeAsync<bool>("isAtBottom", chatLogElement);
-        }
-        catch (JSException)
-        {
-            pendingScrollToBottom = true;
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        ChatService.LogChanged -= OnLogChanged;
-
-        if (scrollModule is not null)
-        {
-            try
-            {
-                await scrollModule.DisposeAsync();
-            }
-            catch (JSDisconnectedException)
-            {
-                // circuit/runtime already tearing down - nothing to clean up
-            }
-        }
     }
 }

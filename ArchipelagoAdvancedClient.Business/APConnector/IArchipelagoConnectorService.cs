@@ -22,4 +22,9 @@ public interface IArchipelagoConnectorService
     Task Connect(string url, string game, string name, string password, Version? version = null);
     Task Disconnect();
     Task SendChatMessage(string message);
+    Task HintLocation(long locationId);
+    Task<string?> PeekLocation(long locationId);
+    Task SendLocation(long locationId);
+    Task SendGoal();
+    Task ReleaseAllRemainingLocations();
 }

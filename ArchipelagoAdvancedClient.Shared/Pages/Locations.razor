@@ -1,0 +1,169 @@
+@namespace ArchipelagoAdvancedClient.Shared.Pages
+@page "/locations"
+@using Archipelago.MultiClient.Net
+@using ArchipelagoAdvancedClient.Business.APConnector
+@using ArchipelagoAdvancedClient.Shared.Components
+@using ArchipelagoAdvancedClient.Shared.Models
+@using ArchipelagoAdvancedClient.Shared.Services
+@implements IDisposable
+@inject IArchipelagoConnectorService Connector
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Locations</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">Locations</MudText>
+
+@if (!IsConnected)
+{
+    <MudText Typo="Typo.body1">Not connected to a room.</MudText>
+}
+else
+{
+    <div class="row g-2">
+        <div class="col-md-8">
+            <MudDataGrid T="LocationDTO" Items="@locations" @bind-SelectedItem="selectedLocation" MultiSelection="false"
+                         Filterable="false" SortMode="SortMode.Multiple" QuickFilter="@QuickFilter" Hover="true" Dense="true"
+                         RowClassFunc="@((loc, _) => loc == selectedLocation ? "selected-row" : string.Empty)" id="locations-grid">
+                <ToolBarContent>
+                    <MudTextField T="string" @bind-Value="searchString" Immediate="true" Placeholder="Filter"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Class="mt-0" id="locations-search-input"/>
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="x => x.Name" Title="Name">
+                        <CellTemplate>
+                            <MudText Style="@($"color:{LocationStateColors.ForState(context.Item.HintState)}")">@context.Item.Name</MudText>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.Item" Title="Item">
+                        <CellTemplate>
+                            <MudText Style="@($"color:{LocationStateColors.ForState(context.Item.HintState)}")">@context.Item.Item</MudText>
+                        </CellTemplate>
+                    </PropertyColumn>
+                </Columns>
+            </MudDataGrid>
+        </div>
+
+        <div class="col-md-4">
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(selectedLocation is null)"
+                           OnClick="HintLocationAsync" id="hint-location-button">Hint Location</MudButton>
+
+                @if (cheatModeVisible)
+                {
+                    <MudExpansionPanels id="cheat-mode-panel">
+                        <MudExpansionPanel Text="Cheat Mode">
+                            <MudStack Spacing="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(selectedLocation is null)"
+                                           OnClick="FreeHintLocationAsync" id="free-hint-location-button">Free Hint Location</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(selectedLocation is null)"
+                                           OnClick="PeekLocationAsync" id="peek-location-button">Peek Location</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(selectedLocation is null)"
+                                           OnClick="SendLocation" id="send-location-button">Send Location</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                           OnClick="SendGoal" id="send-goal-button">Set goal as completed</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Error"
+                                           OnClick="ReleaseAll" id="release-checks-button">Release all remaining checks</MudButton>
+                            </MudStack>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+
+                <ChatLogView Id="locations-chat-log"/>
+            </MudStack>
+        </div>
+    </div>
+}
+
+@code {
+    private const string CheatModeStorageKey = "cheat-mode";
+
+    private List<LocationDTO> locations = [];
+    private LocationDTO? selectedLocation;
+    private string searchString = string.Empty;
+    private bool cheatModeVisible;
+
+    private bool IsConnected => Connector.LoginResult is LoginSuccessful;
+
+    protected override void OnInitialized()
+    {
+        if (IsConnected)
+        {
+            locations = Connector.ListMyLocations().Where(x => x is not null).Select(x => x!).ToList();
+        }
+
+        // The Item/HintState on these LocationDTO instances can be mutated in place by the
+        // connector as hint responses arrive (they're the same cached objects, not a copy), but
+        // nothing re-renders this page when that happens unless something else already triggers a
+        // render (e.g. changing the grid selection) - subscribing here keeps the grid live.
+        Connector.HintsChanged += OnHintsChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // No UI writes this key - it's a hidden flag, false unless someone edits it directly in
+        // storage. bool? (rather than bool) distinguishes "key absent" from "key present and
+        // false", so the first-ever load can persist an explicit false - otherwise the key would
+        // never actually appear in storage for someone to go find and flip to true.
+        var stored = await LocalStorage.GetItemAsync<bool?>(CheatModeStorageKey);
+        if (stored is null)
+        {
+            stored = false;
+            await LocalStorage.SetItemAsync(CheatModeStorageKey, false);
+        }
+
+        cheatModeVisible = stored.Value;
+        if (cheatModeVisible) StateHasChanged();
+    }
+
+    private void OnHintsChanged(object? sender, List<HintDTO> updatedHints) => InvokeAsync(StateHasChanged);
+
+    private bool QuickFilter(LocationDTO location)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+
+        return location.Name is not null && location.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Task HintLocationAsync()
+    {
+        return selectedLocation is null
+            ? Task.CompletedTask
+            : Connector.SendChatMessage($"!hint_location {selectedLocation.Name}");
+    }
+
+    private async Task FreeHintLocationAsync()
+    {
+        if (selectedLocation is null) return;
+
+        await Connector.HintLocation(selectedLocation.Id);
+        selectedLocation.HintState = ItemHintState.Hinted;
+    }
+
+    private async Task PeekLocationAsync()
+    {
+        if (selectedLocation is null) return;
+
+        var item = await Connector.PeekLocation(selectedLocation.Id);
+        if (item is null) return;
+
+        selectedLocation.Item = item;
+        selectedLocation.HintState = ItemHintState.Peeked;
+    }
+
+    private Task SendLocation()
+    {
+        return selectedLocation is null ? Task.CompletedTask : Connector.SendLocation(selectedLocation.Id);
+    }
+
+    private Task SendGoal() => Connector.SendGoal();
+
+    private Task ReleaseAll() => Connector.ReleaseAllRemainingLocations();
+
+    public void Dispose()
+    {
+        Connector.HintsChanged -= OnHintsChanged;
+    }
+}

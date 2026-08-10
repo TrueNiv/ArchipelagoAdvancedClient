@@ -1,0 +1,81 @@
+@namespace ArchipelagoAdvancedClient.Shared.Pages
+@page "/items"
+@using Archipelago.MultiClient.Net
+@using ArchipelagoAdvancedClient.Business.APConnector
+@using ArchipelagoAdvancedClient.Shared.Components
+@inject IArchipelagoConnectorService Connector
+
+<PageTitle>Items</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-2">Items</MudText>
+
+@if (!IsConnected)
+{
+    <MudText Typo="Typo.body1">Not connected to a room.</MudText>
+}
+else if (entries.Count == 0)
+{
+    <MudText Typo="Typo.body1">No item groups available.</MudText>
+}
+else
+{
+    <div class="row g-2">
+        <div class="col-md-8">
+            <MudDataGrid T="ItemEntry" Items="@entries" @bind-SelectedItem="selectedEntry" MultiSelection="false"
+                         Filterable="false" SortMode="SortMode.Multiple" QuickFilter="@QuickFilter" Hover="true" Dense="true"
+                         RowClassFunc="@((entry, _) => entry == selectedEntry ? "selected-row" : string.Empty)" id="items-grid">
+                <ToolBarContent>
+                    <MudTextField T="string" @bind-Value="searchString" Immediate="true" Placeholder="Filter"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Class="mt-0" id="items-search-input"/>
+                </ToolBarContent>
+                <Columns>
+                    <PropertyColumn Property="x => x.Group" Title="Group"/>
+                    <PropertyColumn Property="x => x.Name" Title="Item"/>
+                </Columns>
+            </MudDataGrid>
+        </div>
+
+        <div class="col-md-4">
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(selectedEntry is null)"
+                           OnClick="HintItemAsync" id="hint-item-button">Hint Item</MudButton>
+
+                <ChatLogView Id="items-chat-log"/>
+            </MudStack>
+        </div>
+    </div>
+}
+
+@code {
+    private record ItemEntry(string Group, string Name);
+
+    private List<ItemEntry> entries = [];
+    private ItemEntry? selectedEntry;
+    private string searchString = string.Empty;
+
+    private bool IsConnected => Connector.LoginResult is LoginSuccessful;
+
+    protected override void OnInitialized()
+    {
+        if (IsConnected && Connector.ItemGroups is not null)
+        {
+            entries = Connector.ItemGroups
+                .SelectMany(group => group.Value.Select(item => new ItemEntry(group.Key, item)))
+                .ToList();
+        }
+    }
+
+    private bool QuickFilter(ItemEntry entry)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+
+        return entry.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase) ||
+               entry.Group.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Task HintItemAsync()
+    {
+        return selectedEntry is null ? Task.CompletedTask : Connector.SendChatMessage($"!hint {selectedEntry.Name}");
+    }
+}

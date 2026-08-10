@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
 using Archipelago.MultiClient.Net.Models;
+using Archipelago.MultiClient.Net.Packets;
 
 namespace ArchipelagoAdvancedClient.Business.APConnector;
 
@@ -182,6 +183,43 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
         await ArchipelagoSession.SayAsync(message);
     }
 
+    public async Task HintLocation(long locationId)
+    {
+        // IHintsHelper.CreateHints ultimately calls the synchronous SendPacket, which blocks via
+        // Task.Wait() internally - fine on a real thread pool but throws
+        // PlatformNotSupportedException under single-threaded Blazor WASM. Sending the packet
+        // directly through the async socket API avoids that sync-over-async path entirely, mirroring
+        // what CreateHints(HintStatus, ids) itself does for the current player.
+        await ArchipelagoSession.Socket.SendPacketAsync(new CreateHintsPacket
+        {
+            Locations = [locationId],
+            Player = ArchipelagoSession.Players.ActivePlayer.Slot,
+            Status = HintStatus.Unspecified
+        });
+    }
+
+    public async Task<string?> PeekLocation(long locationId)
+    {
+        var scouted = await ArchipelagoSession.Locations.ScoutLocationsAsync(locationId);
+        return scouted.TryGetValue(locationId, out var info) ? $"{info.Player.Alias} - {info.ItemName}" : null;
+    }
+
+    public async Task SendLocation(long locationId)
+    {
+        await ArchipelagoSession.Locations.CompleteLocationChecksAsync(locationId);
+    }
+
+    public async Task SendGoal()
+    {
+        await ArchipelagoSession.SetGoalAchievedAsync();
+    }
+
+    public async Task ReleaseAllRemainingLocations()
+    {
+        var remaining = ArchipelagoSession.Locations.AllMissingLocations.ToArray();
+        await ArchipelagoSession.Locations.CompleteLocationChecksAsync(remaining);
+    }
+
     private async Task FillData()
     {
         foreach (var player in ArchipelagoSession.Players.AllPlayers)
@@ -218,7 +256,9 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
                 var location = FindLocation(hint.LocationId, FindGame(hint.FindingPlayer));
                 var entrance = hint.Entrance;
                 var status = hint.Status;
-                hints.Add(new HintDTO(receivingPlayer, item, findingPlayer, location?.Name, entrance, status));
+                var isReceivingPlayerSelf = hint.ReceivingPlayer == ArchipelagoSession.ConnectionInfo.Slot;
+                var isFindingPlayerSelf = hint.FindingPlayer == ArchipelagoSession.ConnectionInfo.Slot;
+                hints.Add(new HintDTO(receivingPlayer, item, findingPlayer, location?.Name, entrance, status, isReceivingPlayerSelf, isFindingPlayerSelf));
 
                 if (location is not null)
                 {

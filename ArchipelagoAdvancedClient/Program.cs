@@ -24,7 +24,6 @@ class Program
         appBuilder.Services.AddSingleton<IFormFactor, FormFactor>();
         appBuilder.Services.AddSingleton<ILocalStorageService, FileLocalStorageService>();
         appBuilder.Services.AddSingleton<IExternalLinkOpener, ExternalLinkOpener>();
-        appBuilder.Services.AddScoped<IThemeService, ThemeService>();
 
         // Add business logic services used by the ArchipelagoAdvancedClient.Shared project
         appBuilder.Services.AddSingleton<IChatService, ChatService>();

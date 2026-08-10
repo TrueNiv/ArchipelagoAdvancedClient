@@ -12,7 +12,7 @@
 
 <div class="row">
     <div class="col-md-4">
-        <h4>Connections</h4>
+        <MudText Typo="Typo.h5" Class="mb-2">Connections</MudText>
 
         <ul class="list-group mb-2" id="connections-list">
             @foreach (var connection in connections)
@@ -27,26 +27,20 @@
 
         @if (isAddingConnection)
         {
-            <div class="card card-body mb-2">
-                <div class="mb-2">
-                    <label class="form-label">Name</label>
-                    <input class="form-control" id="connection-name-input" @bind="newConnectionName" @bind:event="oninput"/>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">URL</label>
-                    <input class="form-control" id="connection-url-input" @bind="newConnectionUrl" @bind:event="oninput"/>
-                </div>
+            <MudPaper Class="pa-4 mb-2" Outlined="true">
+                <MudTextField T="string" @bind-Value="newConnectionName" Immediate="true" Label="Name" Variant="Variant.Outlined" Class="mb-2" id="connection-name-input"/>
+                <MudTextField T="string" @bind-Value="newConnectionUrl" Immediate="true" Label="URL" Variant="Variant.Outlined" Class="mb-2" id="connection-url-input"/>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary" id="confirm-add-connection-button" disabled="@(!CanAddConnection)" @onclick="ConfirmAddConnection">Add</button>
-                    <button class="btn btn-secondary" id="cancel-add-connection-button" @onclick="CancelAddConnection">Cancel</button>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" id="confirm-add-connection-button" Disabled="@(!CanAddConnection)" OnClick="ConfirmAddConnection">Add</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" id="cancel-add-connection-button" OnClick="CancelAddConnection">Cancel</MudButton>
                 </div>
-            </div>
+            </MudPaper>
         }
         else
         {
             <div class="d-flex gap-2">
-                <button class="btn btn-primary" id="add-connection-button" @onclick="StartAddConnection">Add Room</button>
-                <button class="btn btn-danger" id="remove-connection-button" disabled="@(selectedConnection is null)" @onclick="RemoveSelectedConnection">Remove Room</button>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" id="add-connection-button" OnClick="StartAddConnection">Add Room</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" id="remove-connection-button" Disabled="@(selectedConnection is null)" OnClick="RemoveSelectedConnection">Remove Room</MudButton>
             </div>
         }
     </div>
@@ -54,18 +48,21 @@
     <div class="col-md-8">
         @if (selectedConnection is not null)
         {
-            <h4>@selectedConnection.Name</h4>
+            <MudText Typo="Typo.h5" Class="mb-2">@selectedConnection.Name</MudText>
 
             @if (isLoadingRoom)
             {
-                <p><em>Loading room information...</em></p>
+                <MudText Typo="Typo.body1"><em>Loading room information...</em></MudText>
             }
             else if (roomLoadFailed)
             {
-                <p class="text-danger">Failed to load room information from this connection's URL.</p>
+                <MudText Typo="Typo.body1" Color="Color.Error">Failed to load room information from this connection's URL.</MudText>
             }
             else if (roomInfo is not null)
             {
+                <!-- MudSelect has no built-in optgroup equivalent (only a disabled-item-as-header
+                     workaround with its own quirks), so this stays a native <select> to keep the
+                     existing per-game grouping behavior exactly as it was. -->
                 <select class="form-select mb-2" id="slot-select" @onchange="OnSlotSelected">
                     <option value="">-- select a slot --</option>
                     @foreach (var group in roomInfo.Slots.Select((slot, index) => (slot, index)).GroupBy(x => x.slot.Game))
@@ -79,7 +76,7 @@
                     }
                 </select>
 
-                <button class="btn btn-success" id="connect-button" disabled="@(selectedSlotIndex is null)" @onclick="Connect">Connect</button>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" id="connect-button" Disabled="@(selectedSlotIndex is null)" OnClick="Connect">Connect</MudButton>
             }
         }
     </div>
@@ -104,7 +101,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        
+
         connections = await LocalStorage.GetItemAsync<List<Connection>>(StorageKey) ?? [];
         StateHasChanged();
     }

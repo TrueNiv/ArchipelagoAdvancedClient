@@ -1,4 +1,5 @@
-using HtmlAgilityPack;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 
 namespace ArchipelagoAdvancedClient.Business.RoomScraping;
 
@@ -8,42 +9,28 @@ public class RoomScraperService : IRoomScraperService
 
     public async Task<RoomInfo> ScrapeRoom(string url)
     {
-        var html = await _client.GetStringAsync(url);
+        var roomUri = new Uri(url);
+        var roomId = roomUri.Segments[^1].Trim('/');
 
-        var doc = new HtmlDocument();
-        doc.LoadHtml(html);
+        var apiUrl = $"{roomUri.Scheme}://{roomUri.Host}/api/room_status/{roomId}";
+        var status = await _client.GetFromJsonAsync<RoomStatusResponse>(apiUrl);
 
+        if (status is null) return new RoomInfo();
 
-        var room = new RoomInfo{Slots = []};
-
-        var connectionString = doc.DocumentNode
-            .SelectNodes(@"//*[@id=""host-room-info""]/span")
-            .Descendants()
-            .FirstOrDefault()?.InnerText;
-
-        if (connectionString is null) return new RoomInfo();
-
-        connectionString = connectionString.Trim().Trim('\'', '"').Replace("/connect ", "").Trim();
-
-        var data = connectionString.Split(':');
-        room.Host = data[0];
-        room.Port = data[1];
-
-        var rows = doc.DocumentNode.SelectNodes(@"//*[@id=""slots-table""]/tbody/tr");
-        if (rows is null) return room;
-
-        foreach (var row in rows)
+        return new RoomInfo
         {
-            var cells = row.SelectNodes("td");
-            if (cells is null || cells.Count < 3) continue;
+            Host = roomUri.Host,
+            Port = status.LastPort.ToString(),
+            Slots = status.Players.Select(player => new SlotInfo(player[0], player[1])).ToList()
+        };
+    }
 
-            var player = cells[1].SelectSingleNode(".//a")?.InnerText.Trim();
-            var game = cells[2].InnerText.Trim();
+    private class RoomStatusResponse
+    {
+        [JsonPropertyName("last_port")]
+        public int LastPort { get; set; }
 
-            if (player is not null)
-                room.Slots.Add(new SlotInfo( player, game));
-        }
-
-        return room;
+        [JsonPropertyName("players")]
+        public List<string[]> Players { get; set; } = [];
     }
 }

@@ -14,16 +14,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
         <PackageReference Include="Photino.Blazor" Version="4.0.13" />
         <!-- Photino.Blazor only ships net8.0/net9.0 assets, so without this NuGet resolves
              Microsoft.AspNetCore.Components.WebView to its net9.0 build (9.0.1) even though
-             every other Components package here is 10.0.0 - pin it explicitly to match. -->
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.0" />
+             every other Components package here is 10.0.x - pin it explicitly to match. -->
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.1" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\ArchipelagoAdvancedClient.Shared\ArchipelagoAdvancedClient.Shared.csproj" />
+        <ProjectReference Include="..\external\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net.csproj" />
     </ItemGroup>
 
 </Project>

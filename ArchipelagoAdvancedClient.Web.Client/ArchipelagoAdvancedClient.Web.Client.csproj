@@ -10,12 +10,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ArchipelagoAdvancedClient.Shared\ArchipelagoAdvancedClient.Shared.csproj"/>
+        <ProjectReference Include="..\external\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.0" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.1"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.1" PrivateAssets="all"/>
     </ItemGroup>
 
 </Project>

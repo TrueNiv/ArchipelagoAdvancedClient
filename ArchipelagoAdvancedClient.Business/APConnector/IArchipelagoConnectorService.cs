@@ -18,6 +18,7 @@ public interface IArchipelagoConnectorService
     string? FindItem(long id, string? game = null);
     string? FindGame(int id);
     List<LocationDTO?> ListMyLocations();
-    void Connect(string url, string game, string name, string password, Version? version = null);
-    void SendChatMessage(string message);
+    Task Connect(string url, string game, string name, string password, Version? version = null);
+    Task Disconnect();
+    Task SendChatMessage(string message);
 }

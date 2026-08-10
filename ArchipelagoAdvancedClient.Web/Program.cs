@@ -4,6 +4,7 @@ using ArchipelagoAdvancedClient.Business.RoomScraping;
 using ArchipelagoAdvancedClient.Web.Components;
 using ArchipelagoAdvancedClient.Shared.Services;
 using ArchipelagoAdvancedClient.Web.Services;
+using MudBlazor.Services;
 
 namespace ArchipelagoAdvancedClient;
 
@@ -16,6 +17,8 @@ public class Program
         // Add services to the container.
         builder.Services.AddRazorComponents()
             .AddInteractiveWebAssemblyComponents();
+
+        builder.Services.AddMudServices();
 
         // Add device-specific services used by the ArchipelagoAdvancedClient.Shared project
         builder.Services.AddSingleton<IFormFactor, FormFactor>();

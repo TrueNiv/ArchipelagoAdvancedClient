@@ -5,63 +5,64 @@
 @using ArchipelagoAdvancedClient.Business
 @using ArchipelagoAdvancedClient.Business.APConnector
 @using Microsoft.AspNetCore.Components
-@implements IDisposable
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
 @inject IChatService ChatService
 @inject IArchipelagoConnectorService Connector
+@inject IJSRuntime JS
 
 <PageTitle>Chat</PageTitle>
 
 <div class="row g-2 align-items-end mb-2">
     <div class="col">
-        <label class="form-label">URL</label>
-        <input class="form-control" id="chat-url-input" @bind="url" @bind:event="oninput"/>
+        <MudTextField T="string" @bind-Value="url" Immediate="true" Label="URL" Variant="Variant.Outlined" id="chat-url-input"/>
     </div>
     <div class="col">
-        <label class="form-label">Username</label>
-        <input class="form-control" id="chat-username-input" @bind="username" @bind:event="oninput"/>
+        <MudTextField T="string" @bind-Value="username" Immediate="true" Label="Username" Variant="Variant.Outlined" id="chat-username-input"/>
     </div>
     <div class="col">
-        <label class="form-label">Password</label>
-        <input type="password" class="form-control" id="chat-password-input" @bind="password" @bind:event="oninput"/>
+        <MudTextField T="string" @bind-Value="password" Immediate="true" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" id="chat-password-input"/>
     </div>
     <div class="col">
-        <label class="form-label">Game</label>
-        <input class="form-control" id="chat-game-input" @bind="game" @bind:event="oninput"/>
+        <MudTextField T="string" @bind-Value="game" Immediate="true" Label="Game" Variant="Variant.Outlined" id="chat-game-input"/>
     </div>
     <div class="col-auto">
-        <button class="btn btn-success" id="chat-connect-button" disabled="@(!CanConnect)" @onclick="ConnectAsync">
-            @(isConnecting ? "Connecting..." : "Connect")
-        </button>
+        @if (IsConnected)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Error" id="chat-connect-button" OnClick="DisconnectAsync">
+                Disconnect
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Success" id="chat-connect-button" Disabled="@(!CanConnect)" OnClick="ConnectAsync">
+                @(isConnecting ? "Connecting..." : "Connect")
+            </MudButton>
+        }
     </div>
 </div>
 
 <div class="row g-2 mb-3">
     <div class="col-md-3">
-        <label class="form-label">Major</label>
-        <input type="number" class="form-control" id="chat-version-major-input" @bind="major" disabled="@(!overrideVersion)"/>
+        <MudNumericField T="int" @bind-Value="major" Label="Major" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-major-input"/>
     </div>
     <div class="col-md-3">
-        <label class="form-label">Minor</label>
-        <input type="number" class="form-control" id="chat-version-minor-input" @bind="minor" disabled="@(!overrideVersion)"/>
+        <MudNumericField T="int" @bind-Value="minor" Label="Minor" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-minor-input"/>
     </div>
     <div class="col-md-3">
-        <label class="form-label">Build</label>
-        <input type="number" class="form-control" id="chat-version-build-input" @bind="build" disabled="@(!overrideVersion)"/>
+        <MudNumericField T="int" @bind-Value="build" Label="Build" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-build-input"/>
     </div>
     <div class="col-md-3 d-flex align-items-center">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="chat-override-version-checkbox" @bind="overrideVersion"/>
-            <label class="form-check-label" for="chat-override-version-checkbox">Override version</label>
-        </div>
+        <MudCheckBox T="bool" @bind-Value="overrideVersion" Label="Override version" id="chat-override-version-checkbox"/>
     </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Connector.ConnectionMessage))
 {
-    <p class="text-muted">@Connector.ConnectionMessage</p>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@Connector.ConnectionMessage</MudText>
 }
 
-<div class="chat-log mb-2" id="chat-log">
+<div class="chat-log mb-2" id="chat-log" @ref="chatLogElement">
     @foreach (var message in ChatService.Log)
     {
         <div class="chat-line">
@@ -75,10 +76,10 @@
 
 <div class="row g-2">
     <div class="col">
-        <input class="form-control" id="chat-message-input" placeholder="Message" @bind="messageText" @bind:event="oninput" @onkeydown="OnMessageKeyDown"/>
+        <MudTextField T="string" @bind-Value="messageText" Immediate="true" Placeholder="Message" Variant="Variant.Outlined" id="chat-message-input" OnKeyDown="OnMessageKeyDown"/>
     </div>
     <div class="col-auto">
-        <button class="btn btn-primary" id="chat-send-button" disabled="@(!CanSend)" @onclick="SendMessage">Send</button>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" id="chat-send-button" Disabled="@(!CanSend)" OnClick="SendMessage">Send</MudButton>
     </div>
 </div>
 
@@ -96,6 +97,10 @@
     private bool isConnecting;
     private string messageText = string.Empty;
 
+    private ElementReference chatLogElement;
+    private IJSObjectReference? scrollModule;
+    private bool pendingScrollToBottom;
+
     [Parameter, SupplyParameterFromQuery(Name = "url")]
     public string? QueryUrl { get; set; }
 
@@ -110,6 +115,7 @@
 
     private bool CanConnect => !isConnecting && !string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(game);
     private bool CanSend => Connector.LoginResult is LoginSuccessful && !string.IsNullOrWhiteSpace(messageText);
+    private bool IsConnected => Connector.LoginResult is LoginSuccessful;
 
     protected override void OnInitialized()
     {
@@ -126,34 +132,79 @@
         {
             await ConnectAsync();
         }
+
+        if (pendingScrollToBottom)
+        {
+            pendingScrollToBottom = false;
+            var module = await GetScrollModuleAsync();
+            await module.InvokeVoidAsync("scrollToBottom", chatLogElement);
+        }
     }
+
+    private async Task<IJSObjectReference> GetScrollModuleAsync() =>
+        scrollModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ArchipelagoAdvancedClient.Shared/js/chat-scroll.js");
 
     private async Task ConnectAsync()
     {
         isConnecting = true;
         var version = overrideVersion ? new Version(major, minor, build) : null;
-        await Task.Run(() => Connector.Connect(url, game, username, password, version));
+        await Connector.Connect(url, game, username, password, version);
         isConnecting = false;
         StateHasChanged();
     }
 
-    private void SendMessage()
+    private async Task DisconnectAsync()
+    {
+        await Connector.Disconnect();
+        StateHasChanged();
+    }
+
+    private async Task SendMessage()
     {
         if (!CanSend) return;
 
-        Connector.SendChatMessage(messageText);
+        await Connector.SendChatMessage(messageText);
         messageText = string.Empty;
     }
 
-    private void OnMessageKeyDown(KeyboardEventArgs e)
+    private async Task OnMessageKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter") SendMessage();
+        if (e.Key == "Enter") await SendMessage();
     }
 
-    private void OnLogChanged() => InvokeAsync(StateHasChanged);
+    private async void OnLogChanged()
+    {
+        // Checked here, before StateHasChanged triggers a re-render with the new message, so this
+        // reflects whether the user was scrolled to the bottom of the *previous* content - the
+        // correct signal for "were they following along" rather than "will they end up at the
+        // bottom after the new message is added".
+        try
+        {
+            var module = await GetScrollModuleAsync();
+            pendingScrollToBottom = await module.InvokeAsync<bool>("isAtBottom", chatLogElement);
+        }
+        catch (JSException)
+        {
+            pendingScrollToBottom = true;
+        }
 
-    public void Dispose()
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
     {
         ChatService.LogChanged -= OnLogChanged;
+
+        if (scrollModule is not null)
+        {
+            try
+            {
+                await scrollModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // circuit/runtime already tearing down - nothing to clean up
+            }
+        }
     }
 }

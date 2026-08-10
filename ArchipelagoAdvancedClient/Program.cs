@@ -5,6 +5,7 @@ using ArchipelagoAdvancedClient.Services;
 using ArchipelagoAdvancedClient.Shared;
 using ArchipelagoAdvancedClient.Shared.Services;
 using Microsoft.Extensions.DependencyInjection;
+using MudBlazor.Services;
 using Photino.Blazor;
 
 namespace ArchipelagoAdvancedClient;
@@ -17,6 +18,7 @@ class Program
         var appBuilder = PhotinoBlazorAppBuilder.CreateDefault(args);
 
         appBuilder.Services.AddLogging();
+        appBuilder.Services.AddMudServices();
 
         // Add device-specific services used by the ArchipelagoAdvancedClient.Shared project
         appBuilder.Services.AddSingleton<IFormFactor, FormFactor>();

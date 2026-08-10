@@ -7,8 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
-      <PackageReference Include="HtmlAgilityPack" Version="1.13.0-beta1" />
+      <ProjectReference Include="..\external\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net\Archipelago.MultiClient.Net.csproj" />
     </ItemGroup>
 
 </Project>

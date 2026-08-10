@@ -1,5 +1,7 @@
+using Archipelago.MultiClient.Net;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
 using ArchipelagoAdvancedClient.Business;
 using ArchipelagoAdvancedClient.Business.APConnector;
 using ArchipelagoAdvancedClient.Business.RoomScraping;
@@ -13,6 +15,12 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        // Loads the Archipelago.MultiClient.Net browser WebSocket transport's JS module here, at
+        // true app startup, rather than lazily on first connect - a known JSHost.ImportAsync
+        // hang can occur when the import is instead triggered from deep inside a later async
+        // call chain (e.g. a button click handler). No-op on the desktop build.
+        await ArchipelagoSessionFactory.WarmUpBrowserTransportAsync();
+
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
         // This assembly boots both as the standalone GitHub Pages app (its own index.html has a
@@ -27,6 +35,8 @@ class Program
             builder.RootComponents.Add<Routes>("#app");
             builder.RootComponents.Add<HeadOutlet>("head::after");
         }
+
+        builder.Services.AddMudServices();
 
         // Add device-specific services used by the ArchipelagoAdvancedClient.Shared project
         builder.Services.AddSingleton<IFormFactor, FormFactor>();

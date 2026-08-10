@@ -8,6 +8,8 @@ namespace ArchipelagoAdvancedClient.Business.APConnector;
 
 public class ArchipelagoConnectorService : IArchipelagoConnectorService
 {
+    public static readonly string[] DEFAULT_TAGS = ["TextOnly", "AP"];
+
     private readonly IChatService _chatService;
 
     private string _url;
@@ -89,8 +91,11 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
     }
 
 
-    public void Connect(string url, string game, string name, string password, Version? version = null)
+    public async Task Connect(string url, string game, string name, string password, Version? version = null)
     {
+        if (ArchipelagoSession is not null)
+            await Disconnect();
+
         try
         {
             _url = url;
@@ -102,8 +107,14 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
             DeathLinkService = ArchipelagoSession.CreateDeathLinkService();
             ArchipelagoSession.Hints.TrackHints(UpdateHints);
             this.ArchipelagoSession.MessageLog.OnMessageReceived += AddLogMessage;
-            LoginResult = ArchipelagoSession.TryConnectAndLogin(_game, _name, ItemsHandlingFlags.AllItems, password: _password, version: _version);
-            FillData();
+
+            // Uses the async connect/login API (never blocks the calling thread waiting on a
+            // background task) rather than the synchronous TryConnectAndLogin, which internally
+            // does block - fine on a real thread pool (desktop) but deadlocks/times out on the
+            // single-threaded WASM host.
+            await ArchipelagoSession.ConnectAsync();
+            LoginResult = await ArchipelagoSession.LoginAsync(_game, _name, ItemsHandlingFlags.AllItems, password: _password, version: _version);
+            await FillData();
 
         }
         catch (Exception e)
@@ -129,8 +140,35 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
         {
             ConnectionMessage = $"Connected.";
             ArchipelagoSession.Hints.TrackHints(UpdateHints);
-            ItemGroups = ArchipelagoSession.DataStorage.GetItemNameGroups();
+            ItemGroups = await ArchipelagoSession.DataStorage.GetItemNameGroupsAsync();
         }
+    }
+
+    public async Task Disconnect()
+    {
+        if (ArchipelagoSession is not null)
+        {
+            try
+            {
+                await ArchipelagoSession.Socket.DisconnectAsync();
+            }
+            catch
+            {
+                // socket may already be closed/faulted - nothing more to do
+            }
+        }
+
+        ArchipelagoSession = null;
+        DeathLinkService = null;
+        LoginResult = null;
+        ItemGroups = null;
+        ConnectionMessage = "Disconnected.";
+
+        players.Clear();
+        locations.Clear();
+        items.Clear();
+        games.Clear();
+        hints.Clear();
     }
 
     private void AddLogMessage(LogMessage message)
@@ -138,12 +176,12 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
         _chatService.Add(message);
     }
 
-    public void SendChatMessage(string message)
+    public async Task SendChatMessage(string message)
     {
-        ArchipelagoSession.Say(message);
+        await ArchipelagoSession.SayAsync(message);
     }
 
-    private void FillData()
+    private async Task FillData()
     {
         foreach (var player in ArchipelagoSession.Players.AllPlayers)
         {
@@ -151,8 +189,8 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
             games.TryAdd(player.Slot, player.Game);
         }
 
-        var items = ArchipelagoSession.Locations.ScoutLocationsAsync(ArchipelagoSession.Locations.AllLocationsChecked
-            .ToArray()).Result.Select(x => (x.Value.LocationName, x.Value.LocationId ,x.Value.ItemName));
+        var scouted = await ArchipelagoSession.Locations.ScoutLocationsAsync(ArchipelagoSession.Locations.AllLocationsChecked.ToArray());
+        var items = scouted.Select(x => (x.Value.LocationName, x.Value.LocationId, x.Value.ItemName));
         foreach (var location in items)
         {
             locations.TryAdd((location.LocationId, _game), new LocationDTO(location.LocationName, location.LocationId, ItemHintState.Collected, location.ItemName));

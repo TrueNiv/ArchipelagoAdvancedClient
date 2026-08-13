@@ -53,27 +53,41 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish Photino app
+      - name: Publish (self-contained)
         run: >
           dotnet publish ArchipelagoAdvancedClient/ArchipelagoAdvancedClient.csproj
           -c Release
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishSingleFile=true
-          -o publish/${{ matrix.rid }}
+          -o publish/${{ matrix.rid }}-selfcontained
+          --nologo
+
+      - name: Publish (framework-dependent)
+        run: >
+          dotnet publish ArchipelagoAdvancedClient/ArchipelagoAdvancedClient.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained false
+          -p:PublishSingleFile=true
+          -o publish/${{ matrix.rid }}-framework
           --nologo
 
       - name: Archive (Windows, zip)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath ArchipelagoAdvancedClient-${{ matrix.rid }}.zip
+        run: |
+          Compress-Archive -Path publish/${{ matrix.rid }}-selfcontained/* -DestinationPath ArchipelagoAdvancedClient-${{ matrix.rid }}-selfcontained.zip
+          Compress-Archive -Path publish/${{ matrix.rid }}-framework/* -DestinationPath ArchipelagoAdvancedClient-${{ matrix.rid }}-framework-dependent.zip
 
       - name: Archive (Linux, tar.gz)
         if: matrix.os == 'ubuntu-latest'
-        run: tar -czvf ArchipelagoAdvancedClient-${{ matrix.rid }}.tar.gz -C publish/${{ matrix.rid }} .
+        run: |
+          tar -czvf ArchipelagoAdvancedClient-${{ matrix.rid }}-selfcontained.tar.gz -C publish/${{ matrix.rid }}-selfcontained .
+          tar -czvf ArchipelagoAdvancedClient-${{ matrix.rid }}-framework-dependent.tar.gz -C publish/${{ matrix.rid }}-framework .
 
       - name: Upload to Release
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} ArchipelagoAdvancedClient-${{ matrix.rid }}.* --clobber
+        run: gh release upload ${{ github.event.release.tag_name }} ArchipelagoAdvancedClient-${{ matrix.rid }}-*.* --clobber

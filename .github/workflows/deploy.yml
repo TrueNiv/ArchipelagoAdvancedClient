@@ -1,16 +1,47 @@
-name: Deploy to GitHub Pages
+name: Deploy and Release
 
 on:
-  push:
-    branches: [ master ]
-  workflow_dispatch:  # erlaubt manuelles Auslösen über die GitHub-Weboberfläche
+  release:
+    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
+  deploy-pages:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore dependencies
+        run: dotnet restore ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj
+      - name: Publish
+        run: dotnet publish ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj -c Release -o dist --nologo
+      - name: Add .nojekyll
+        run: touch dist/wwwroot/.nojekyll
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist/wwwroot
+
+  build-photino:
+    if: github.event_name == 'release'
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,17 +53,27 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj
+      - name: Publish Photino app
+        run: >
+          dotnet publish ArchipelagoAdvancedClient/ArchipelagoAdvancedClient.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishSingleFile=true
+          -o publish/${{ matrix.rid }}
+          --nologo
 
-      - name: Publish
-        run: dotnet publish ArchipelagoAdvancedClient.Web.Client/ArchipelagoAdvancedClient.Web.Client.csproj -c Release -o dist --nologo
+      - name: Archive (Windows, zip)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath ArchipelagoAdvancedClient-${{ matrix.rid }}.zip
 
-      - name: Add .nojekyll
-        run: touch dist/wwwroot/.nojekyll
+      - name: Archive (Linux, tar.gz)
+        if: matrix.os == 'ubuntu-latest'
+        run: tar -czvf ArchipelagoAdvancedClient-${{ matrix.rid }}.tar.gz -C publish/${{ matrix.rid }} .
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dist/wwwroot
+      - name: Upload to Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload ${{ github.event.release.tag_name }} ArchipelagoAdvancedClient-${{ matrix.rid }}.* --clobber

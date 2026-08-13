@@ -1,6 +1,6 @@
 A third party client for [Archipelago](archipelago.gg) aiming to provide better user experience and additional features.
 
-## This build is not fully tested yet. It can connect to a room, but but issues may arise. Use at your own risk
+## This build is not fully tested yet. It can connect to a room, but but issues may arise. Use at your own risk!
 
 ## Running the desktop app
 

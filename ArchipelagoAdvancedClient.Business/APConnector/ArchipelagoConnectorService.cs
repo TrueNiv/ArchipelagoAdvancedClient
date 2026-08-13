@@ -9,7 +9,7 @@ namespace ArchipelagoAdvancedClient.Business.APConnector;
 
 public class ArchipelagoConnectorService : IArchipelagoConnectorService
 {
-    public static readonly string[] DEFAULT_TAGS = ["TextOnly", "AP"];
+    public static readonly string[] DEFAULT_TAGS = ["AP"];
 
     private readonly IChatService _chatService;
 
@@ -115,7 +115,7 @@ public class ArchipelagoConnectorService : IArchipelagoConnectorService
             // does block - fine on a real thread pool (desktop) but deadlocks/times out on the
             // single-threaded WASM host.
             await ArchipelagoSession.ConnectAsync();
-            LoginResult = await ArchipelagoSession.LoginAsync(_game, _name, ItemsHandlingFlags.AllItems, password: _password, version: _version);
+            LoginResult = await ArchipelagoSession.LoginAsync(_game, _name, ItemsHandlingFlags.AllItems, password: _password, version: _version, tags: DEFAULT_TAGS);
             await FillData();
 
         }

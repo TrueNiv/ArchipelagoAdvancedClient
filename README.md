@@ -14,3 +14,4 @@ Photino embeds the OS's own web engine rather than bundling one, so it has platf
   - **Attention:** Running on wayland may require an extra environment variable like so: `WEBKIT_DISABLE_DMABUF_RENDERER=1 ./ArchipelagoAdvancedClient`
 
 - **Windows**: requires the Microsoft Edge WebView2 Runtime, which ships preinstalled on most current Windows 10/11 systems. If missing, install it from [Microsoft's WebView2 page](https://developer.microsoft.com/microsoft-edge/webview2/).
+- **Currently the windows build is not tested yet!**

@@ -46,6 +46,11 @@ else
 
         <div class="col-md-4">
             <MudStack Spacing="2">
+                @if (selectedLocation is not null)
+                {
+                    <MudText Typo="Typo.subtitle1" id="locations-selected-name">@selectedLocation.Name</MudText>
+                }
+
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(selectedLocation is null)"
                            OnClick="HintLocationAsync" id="hint-location-button">Hint Location</MudButton>
 

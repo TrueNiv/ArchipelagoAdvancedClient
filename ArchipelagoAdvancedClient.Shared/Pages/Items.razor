@@ -38,6 +38,11 @@ else
 
         <div class="col-md-4">
             <MudStack Spacing="2">
+                @if (selectedEntry is not null)
+                {
+                    <MudText Typo="Typo.subtitle1" id="items-selected-name">@selectedEntry.Name</MudText>
+                }
+
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(selectedEntry is null)"
                            OnClick="HintItemAsync" id="hint-item-button">Hint Item</MudButton>
 

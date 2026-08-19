@@ -13,16 +13,16 @@
 
 <div class="row g-2 align-items-end mb-2">
     <div class="col">
-        <MudTextField T="string" Value="@url" ValueChanged="@(async (string v) => { url = v; await SaveSettingsAsync(); })" Immediate="true" Label="URL" Variant="Variant.Outlined" id="chat-url-input"/>
+        <MudTextField T="string" Value="@url" ValueChanged="@(async (string v) => { url = v; await SaveSettingsAsync(); })" Immediate="true" Label="URL" Variant="Variant.Outlined" Disabled="@IsConnected" id="chat-url-input"/>
     </div>
     <div class="col">
-        <MudTextField T="string" Value="@username" ValueChanged="@(async (string v) => { username = v; await SaveSettingsAsync(); })" Immediate="true" Label="Username" Variant="Variant.Outlined" id="chat-username-input"/>
+        <MudTextField T="string" Value="@username" ValueChanged="@(async (string v) => { username = v; await SaveSettingsAsync(); })" Immediate="true" Label="Username" Variant="Variant.Outlined" Disabled="@IsConnected" id="chat-username-input"/>
     </div>
     <div class="col">
-        <MudTextField T="string" @bind-Value="password" Immediate="true" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" id="chat-password-input"/>
+        <MudTextField T="string" @bind-Value="password" Immediate="true" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Disabled="@IsConnected" id="chat-password-input"/>
     </div>
     <div class="col">
-        <MudTextField T="string" Value="@game" ValueChanged="@(async (string v) => { game = v; await SaveSettingsAsync(); })" Immediate="true" Label="Game" Variant="Variant.Outlined" id="chat-game-input"/>
+        <MudTextField T="string" Value="@game" ValueChanged="@(async (string v) => { game = v; await SaveSettingsAsync(); })" Immediate="true" Label="Game" Variant="Variant.Outlined" Disabled="@IsConnected" id="chat-game-input"/>
     </div>
     <div class="col-auto">
         @if (IsConnected)
@@ -42,16 +42,16 @@
 
 <div class="row g-2 mb-3">
     <div class="col-md-3">
-        <MudNumericField T="int" Value="@major" ValueChanged="@(async (int v) => { major = v; await SaveSettingsAsync(); })" Label="Major" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-major-input"/>
+        <MudNumericField T="int" Value="@major" ValueChanged="@(async (int v) => { major = v; await SaveSettingsAsync(); })" Label="Major" Variant="Variant.Outlined" Disabled="@(IsConnected || !overrideVersion)" id="chat-version-major-input"/>
     </div>
     <div class="col-md-3">
-        <MudNumericField T="int" Value="@minor" ValueChanged="@(async (int v) => { minor = v; await SaveSettingsAsync(); })" Label="Minor" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-minor-input"/>
+        <MudNumericField T="int" Value="@minor" ValueChanged="@(async (int v) => { minor = v; await SaveSettingsAsync(); })" Label="Minor" Variant="Variant.Outlined" Disabled="@(IsConnected || !overrideVersion)" id="chat-version-minor-input"/>
     </div>
     <div class="col-md-3">
-        <MudNumericField T="int" Value="@build" ValueChanged="@(async (int v) => { build = v; await SaveSettingsAsync(); })" Label="Build" Variant="Variant.Outlined" Disabled="@(!overrideVersion)" id="chat-version-build-input"/>
+        <MudNumericField T="int" Value="@build" ValueChanged="@(async (int v) => { build = v; await SaveSettingsAsync(); })" Label="Build" Variant="Variant.Outlined" Disabled="@(IsConnected || !overrideVersion)" id="chat-version-build-input"/>
     </div>
     <div class="col-md-3 d-flex align-items-center">
-        <MudCheckBox T="bool" Value="@overrideVersion" ValueChanged="@(async (bool v) => { overrideVersion = v; await SaveSettingsAsync(); })" Label="Override version" id="chat-override-version-checkbox"/>
+        <MudCheckBox T="bool" Value="@overrideVersion" ValueChanged="@(async (bool v) => { overrideVersion = v; await SaveSettingsAsync(); })" Label="Override version" Disabled="@IsConnected" id="chat-override-version-checkbox"/>
     </div>
 </div>
 

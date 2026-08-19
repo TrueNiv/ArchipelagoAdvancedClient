@@ -33,11 +33,33 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            pendingScrollToBottom = false;
+            await TryScrollToBottomAsync();
+            return;
+        }
+
         if (pendingScrollToBottom)
         {
             pendingScrollToBottom = false;
+            await TryScrollToBottomAsync();
+        }
+    }
+
+    private async Task TryScrollToBottomAsync()
+    {
+        try
+        {
             var module = await GetScrollModuleAsync();
             await module.InvokeVoidAsync("scrollToBottom", chatLogElement);
+        }
+        catch (JSException)
+        {
+            // JS interop can fail this early in the render lifecycle (e.g. module not yet
+            // reachable) - see the same catch in OnLogChanged. Worst case the log just doesn't
+            // auto-scroll this one time, which is better than an unhandled exception here
+            // taking down the whole process (Photino has no render-lifecycle error boundary).
         }
     }
 

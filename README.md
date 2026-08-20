@@ -15,3 +15,5 @@ Photino embeds the OS's own web engine rather than bundling one, so it has platf
 
 - **Windows**: requires the Microsoft Edge WebView2 Runtime, which ships preinstalled on most current Windows 10/11 systems. If missing, install it from [Microsoft's WebView2 page](https://developer.microsoft.com/microsoft-edge/webview2/).
   - **Currently the windows build is not tested yet!**
+
+- **Versions**: The normal versions require the .NET 10 runtime to be installed. If you don't want that pick the selfcontained versions.
